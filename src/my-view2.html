@@ -1,0 +1,219 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/mapbox-gl/mapbox-gl.html">
+<link rel="import" href="../bower_components/mapbox-gl/geojson-source.html">
+<link rel="import" href="../bower_components/mapbox-gl/mapbox-layer.html">
+<link rel="import" href="../bower_components/mapbox-gl/mapbox-gl-geocoder.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="my-view2">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+       mapbox-gl {
+              height: 900px;
+              width: 100%;
+            }  
+    </style>
+
+    <div class="card">
+      <div class="circle">2</div>
+      <h1>Map View Two</h1>
+      <p>Center: [[center]] Lat:[[centerLat]] Lng: [[centerLng]]</p>
+      <p>I added this page to see if you might have any advice. I am trying to have the radius update with changes to the map center, but am not able to figure out how to push those changes through as coordinate updates. I assume that it is something similar to your demo. Please let me know if you have any suggestions. Thanks </p>
+    </div>
+    <div class="card">
+      <mapbox-gl 
+       interactive access-token="[[key]]" 
+       map="{{map}}" 
+       latitude="{{lat}}" 
+       longitude="{{lng}}" 
+       zoom="10" 
+       pitch="0"
+       on-mapbox-gl-move="_handleMove"></mapbox-gl>
+      </div>  
+      <mapbox-layer 
+        map="[[map]]" 
+        layer-id="layer_points" 
+        rendering-type="circle" 
+        source="geojsonsrc" 
+        color="#009688" 
+        opacity="0.7"></mapbox-layer> 
+         <!-- Declare GeoJSON data directly through `source-data` -->
+      <mapbox-layer
+        map="[[map]]"
+        layer-id="layer_fill"
+        rendering-type="fill"
+        source="geoRadius"
+        color="#880E4F"
+        opacity=0.15></mapbox-layer>
+      		
+	    <mapbox-layer
+        map="[[map]]"
+        layer-id="layer_radius"
+        rendering-type="line"
+        source="geoRadius"
+			  color="#D31F26"
+			  line-width=4
+        opacity=0.85></mapbox-layer>
+  	
+  
+    <geojson-source
+      map="[[map]]"
+      source-id="geoRadius"
+      source-data="{{sourceGeoJsonData}}"></geojson-source>    
+    <geojson-source 
+      map="[[map]]" 
+      source-id="geojsonsrc" 
+      source-data="[[sourceData]]"></geojson-source> 
+   
+  </template>
+
+  <script>
+    class MyView2 extends Polymer.Element {
+      static get is() { return 'my-view2'; }
+      static get properties() {
+        return {
+          key: {
+            type: String,
+            value: 'pk.eyJ1IjoianBhcmlzaCIsImEiOiJXM3VXb2ZJIn0.dHkcNsNxtkDBGr-h67A-ig'
+          },
+          lat: {
+            type: Object,
+            value: 35.228878,
+            notify: true
+          },
+          lng: {
+            type: Object,
+            value: -80.840521,
+            notify: true
+          },
+           centerLat: {
+            type: Object,
+            computed: '_getLat(center)',
+            notify: true
+          },
+           centerLng: {
+            type: Object,
+            computed: '_getLng(center)',
+            notify: true
+          },
+          center: {
+            type: Object,
+            notify: true
+          },
+          d: {
+            type: Object,
+            value: 10,
+            notify: true
+          },
+         sourceGeoJsonData: {
+            type: Object,
+            value: {
+              "type": "FeatureCollection",
+              "features": []
+            },
+            observer: '_convertCenterToGeoJSon'
+          }, 
+          sourceData: {
+            type: Object,
+            value: {
+              "type": "FeatureCollection",
+              "features": [
+                {
+                  type: 'Feature',
+                  geometry: {
+                    type: 'Point',
+                    coordinates: [-80.840521, 35.228878]
+                  }
+                }
+              ]
+            }
+          }
+        };
+      }
+      	_handleMove() {
+        // execute only when map exist
+        this.center = this.map.getCenter().toArray();
+        this._convertCenterToGeoJSon();
+      } 
+    	 _convertCenterToGeoJSon() {
+        //			if (map){	
+        var geojson = {
+          type: "FeatureCollection",
+          features: [],
+        };
+
+        var points = 64;
+
+        var km = this.d; // You should read the desired API property that maps to the radius here
+    
+
+        var coords = {
+          latitude: this.lat,
+          longitude: this.lng
+
+        };
+
+        console.log("long: " + coords.longitude)
+        console.log("lat: " + coords.latitude)
+
+
+        var ret = [];
+        var distanceX = km / (111.320 * Math.cos(coords.latitude * Math.PI / 180));
+        var distanceY = km / 110.574;
+
+        var theta, x, y;
+        for (var j = 0; j < points; j++) {
+          theta = (j / points) * (2 * Math.PI);
+          x = distanceX * Math.cos(theta);
+          y = distanceY * Math.sin(theta);
+
+          ret.push([coords.longitude + x, coords.latitude + y]);
+        }
+        ret.push(ret[0]);
+
+
+        geojson.features.push({
+          "type": "Feature",
+
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [ret]
+          },
+          "properties": {
+
+          }
+        });
+
+        this.sourceGeoJsonData = geojson;
+
+      }
+      _getLat(center) {
+        if (center) {
+          return center[1];
+        }
+      }
+      _getLng(center) {
+        if (center) {
+          return center[0];
+        }
+      }	
+    }
+
+    window.customElements.define(MyView2.is, MyView2);
+  </script>
+</dom-module>
