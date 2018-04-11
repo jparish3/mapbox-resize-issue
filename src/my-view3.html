@@ -9,6 +9,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/mapbox-gl/mapbox-gl.html">
+<link rel="import" href="../bower_components/mapbox-gl/geojson-source.html">
+<link rel="import" href="../bower_components/mapbox-gl/mapbox-layer.html">
+<link rel="import" href="../bower_components/mapbox-gl/mapbox-gl-geocoder.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
 <link rel="import" href="shared-styles.html">
 
 <dom-module id="my-view3">
@@ -19,19 +24,95 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         padding: 10px;
       }
+          mapbox-gl {
+              height: 900px;
+              width: 100%;
+            }  
     </style>
 
     <div class="card">
       <div class="circle">3</div>
-      <h1>View Three</h1>
+      <h1>View Three TEST</h1>
       <p>Modus commodo minimum eum te, vero utinam assueverit per eu.</p>
       <p>Ea duis bonorum nec, falli paulo aliquid ei eum.Has at minim mucius aliquam, est id tempor laoreet.Pro saepe pertinax ei, ad pri animal labores suscipiantur.</p>
+      <paper-button on-click="addPoint">Add point</paper-button>
+      
+      <mapbox-gl interactive latitude=40.7135 longitude=-74.0066 zoom=1 access-token="[[key]]" map="{{map}}" zoom=10>
+      
+        <!--
+          sourceData.features.* is added as an
+          additional arg so that any insertion
+          to `sourceData.features` will also
+          update `source-data` 
+        -->
+        <mapbox-layer layer-id="layer_points" rendering-type="circle" color="#009688" opacity=0.7 source-data="[[_toSourceData(sourceData, sourceData.features.*)]]">
+        </mapbox-layer>
+      
+      </mapbox-gl>
     </div>
   </template>
 
   <script>
     class MyView3 extends Polymer.Element {
       static get is() { return 'my-view3'; }
+        static get properties() {
+        return {
+          key: {
+            type: String,
+            value: 'pk.eyJ1IjoianBhcmlzaCIsImEiOiJXM3VXb2ZJIn0.dHkcNsNxtkDBGr-h67A-ig'
+          },
+          sourceData: {
+            type: Object,
+            value: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  geometry: {
+                    type: 'Point',
+                    coordinates: [-77.032, 38.913]
+                  }
+                },
+                {
+                  type: 'Feature',
+                  geometry: {
+                    type: 'Point',
+                    coordinates: [-122.414, 37.776]
+                  }
+                }
+              ]
+            }
+          }
+        };
+      }
+      // `source-data` takes in an Object of the form
+      // {type: 'geojson', data: <GEOJSON>}
+      _toSourceData(data) {
+        return { type: 'geojson', data };
+      }
+
+      // adds a random point
+      // notify element of array mutation in the sourceData
+      addPoint() {
+        var randomPoint = this._genPoint();
+        this.push('sourceData.features', randomPoint);
+      }
+
+      // generate a random point
+      _genPoint() {
+
+        var rand = function (min, max) {
+          return Math.random() * (max - min) + min;
+        }
+
+        return {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [rand(-120, -70), rand(0, 60)]
+          }
+        };
+      }
     }
 
     window.customElements.define(MyView3.is, MyView3);
