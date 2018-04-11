@@ -105,7 +105,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             selected="[[page]]"
             attr-for-selected="name"
             fallback-selection="view404"
-            role="main">
+            role="main"
+            selected-item="{{pageElement}}">
           <my-view1 name="view1"></my-view1>
           <my-view2 name="view2"></my-view2>
           <my-view3 name="view3"></my-view3>
@@ -135,6 +136,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           // This shouldn't be neccessary, but the Analyzer isn't picking up
           // Polymer.Element#rootPath
           rootPath: String,
+          pageElement: Object
         };
       }
 
@@ -168,6 +170,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _showPage404() {
         this.page = 'view404';
       }
+     _pageElementChanged(ele) {
+        if (!ele) return;
+        // call resize if function exist
+        ele.resize && ele.resize();
+      } 
     }
 
     window.customElements.define(MyApp.is, MyApp);
